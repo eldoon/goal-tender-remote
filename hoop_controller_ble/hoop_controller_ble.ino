@@ -154,6 +154,11 @@ uint32_t lastBtnPressMs = 0;
 uint32_t lastBleNotifyMs = 0;
 uint32_t bootHoldStartMs = 0;
 
+// Non-blocking LED blink state for physical channel selection
+uint8_t  ledBlinksRemaining = 0;
+bool     ledBlinkOn = false;
+uint32_t ledBlinkNextMs = 0;
+
 BLECharacteristic* pStatusChar = nullptr;
 bool bleConnected = false;
 bool statusDirty = false;
@@ -205,6 +210,8 @@ void stopTransmission(const char* reason) {
     Serial.printf("[STOP] Stopping RF transmission (%s)\n", reason);
   }
   currentState = STATE_IDLE;
+  ledBlinksRemaining = 0;
+  ledBlinkOn = false;
   cc1101Strobe(CC1101_SIDLE);
   digitalWrite(CC1101_GDO0, LOW);
   digitalWrite(STATUS_LED, LOW);
@@ -228,6 +235,8 @@ void startTransmission(uint8_t newStateIdx, const char* source, uint32_t overrid
   currentState = newState;
   stateStartTimeMs = millis();
   activeDurationMs = durSec * 1000UL;
+  ledBlinksRemaining = 0;
+  ledBlinkOn = false;
 
   cc1101Strobe(CC1101_STX);
   delayMicroseconds(800);
@@ -462,7 +471,19 @@ void checkPhysicalButtons() {
 
   if (digitalRead(BTN_STOP_PIN) == LOW) {
     lastBtnPressMs = millis();
-    stopTransmission("Physical STOP (P14)");
+    if (currentState != STATE_IDLE) {
+      stopTransmission("Physical STOP (P14)");
+    } else {
+      // Idle: rotate channel 1 -> 2 -> ... -> 9 -> 1 and blink LED N times
+      selectedChannel = (selectedChannel % 9) + 1;
+      prefs.putUChar("ch", selectedChannel);
+      statusDirty = true;
+      digitalWrite(STATUS_LED, LOW);
+      ledBlinkOn = false;
+      ledBlinksRemaining = selectedChannel;
+      ledBlinkNextMs = millis() + 250; // Short settle so rapid presses jump cleanly
+      Serial.printf("[CHANNEL] Rotated to Channel %u\n", selectedChannel);
+    }
     return;
   }
   if (digitalRead(BTN_BOOT_PIN) == LOW) {
@@ -483,8 +504,25 @@ void checkPhysicalButtons() {
   }
 }
 
+void updateLedBlinks() {
+  if (currentState != STATE_IDLE || ledBlinksRemaining == 0) return;
+  if ((int32_t)(millis() - ledBlinkNextMs) < 0) return;
+
+  if (!ledBlinkOn) {
+    ledBlinkOn = true;
+    digitalWrite(STATUS_LED, HIGH);
+    ledBlinkNextMs = millis() + 140;
+  } else {
+    ledBlinkOn = false;
+    digitalWrite(STATUS_LED, LOW);
+    ledBlinksRemaining--;
+    ledBlinkNextMs = millis() + 180;
+  }
+}
+
 void loop() {
   checkPhysicalButtons();
+  updateLedBlinks();
 
   if (currentState != STATE_IDLE) {
     uint32_t elapsed = millis() - stateStartTimeMs;

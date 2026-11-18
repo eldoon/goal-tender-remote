@@ -24,7 +24,7 @@ An **ESP32 + CC1101** Sub-GHz controller with a **Web Bluetooth** interface (`in
 ### Optional Physical Buttons (Momentary to `GND`)
 - **UP:** `P13` → `GND`
 - **DOWN:** `P12` → `GND`
-- **STOP:** `P14` → `GND`
+- **STOP:** `P14` → `GND` *(Stops immediately when moving; when idle, rotates through Channels 1–9 and blinks the blue LED `N` times for the selected channel)*
 - **Onboard `IO0` (`P0`):** Quick press toggles UP/STOP; **hold 5 seconds** to factory-reset Bluetooth pairing.
 
 ---
