@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Goal Tender Remote</title>
+<title>Red Hawks • Goal Tender Remote</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -47,18 +47,26 @@
     background: rgba(19, 28, 46, 0.92);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: 12px 16px;
-    display: flex;
+    padding: 10px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
   }
   .appbar-title {
+    grid-column: 2;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     font-size: 1.15rem;
     font-weight: 700;
     letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+  .appbar-right {
+    grid-column: 3;
+    display: flex;
+    justify-content: flex-end;
   }
   .ble-chip {
     display: inline-flex;
@@ -277,7 +285,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     position: sticky;
-    top: 57px;
+    top: 84px;
     z-index: 19;
   }
   .tab-btn {
@@ -362,13 +370,15 @@
 
 <header class="appbar">
   <div class="appbar-title">
-    <span>🏀</span>
+    <div id="redhawkAvatar" title="Tap me!" style="width:64px;height:64px;flex-shrink:0;"></div>
     <span>Goal Tender</span>
   </div>
-  <button class="ble-chip" id="bleBtn" onclick="connectBLE()">
-    <span class="dot"></span>
-    <span id="bleBtnText">Connect</span>
-  </button>
+  <div class="appbar-right">
+    <button class="ble-chip" id="bleBtn" onclick="connectBLE()">
+      <span class="dot"></span>
+      <span id="bleBtnText">Connect</span>
+    </button>
+  </div>
 </header>
 
 <nav class="tabs">
@@ -461,7 +471,10 @@
 
 <div class="snackbar" id="snackbar"></div>
 
+<script src="assets/redhawk-rig-data.js"></script>
+<script src="assets/redhawk-avatar.js"></script>
 <script>
+const redhawk = window.mountRedhawk ? window.mountRedhawk(document.getElementById('redhawkAvatar'), 64) : null;
 const SERVICE_UUID = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
 const CMD_UUID     = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 const STATUS_UUID  = 'beb5483f-36e1-4688-b7f5-ea07361b26a8';
@@ -590,6 +603,7 @@ function onDisconnected() {
   document.getElementById('rfInfo').textContent = 'Bluetooth disconnected — tap Reconnect';
   document.getElementById('progressFill').style.width = '0%';
   setControlsEnabled(false);
+  if (redhawk) redhawk.setState('idle');
 }
 
 async function sendBLE(text) {
@@ -634,6 +648,7 @@ async function savePasskey() {
 function handleStatus(jsonStr) {
   try {
     const d = JSON.parse(jsonStr);
+    if (redhawk) redhawk.setState(d.state !== 0 ? 'active' : 'idle');
     updateChannelUI(d.ch);
     const pill = document.getElementById('statePill');
     const timer = document.getElementById('timerDisplay');
