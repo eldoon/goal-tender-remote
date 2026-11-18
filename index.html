@@ -2,136 +2,449 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Goal Tender BLE Remote</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Goal Tender Remote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f172a;
-    --card: #1e293b;
-    --text: #f8fafc;
-    --muted: #94a3b8;
-    --up: #2563eb;
-    --down: #059669;
-    --stop: #dc2626;
-    --accent: #f59e0b;
-    --ble: #0ea5e9;
+    --bg: #0a101d;
+    --surface: #131c2e;
+    --surface-2: #1b273e;
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #f1f5f9;
+    --text-sec: #94a3b8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --success: #10b981;
+    --success-dark: #059669;
+    --error: #ef4444;
+    --error-dark: #dc2626;
+    --warning: #f59e0b;
+    --radius: 16px;
+    --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.45);
   }
-  * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  body { margin: 0; padding: 16px; background: var(--bg); color: var(--text); text-align: center; }
-  .container { max-width: 440px; margin: 0 auto; }
-  h1 { font-size: 1.35rem; margin: 4px 0 12px; }
-  .card {
-    background: var(--card); border-radius: 14px; padding: 14px;
-    margin-bottom: 14px; border: 1px solid #334155;
+  * {
+    box-sizing: border-box;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-tap-highlight-color: transparent;
   }
-  .btn-ble {
-    width: 100%; border: none; border-radius: 12px; padding: 14px;
-    font-size: 1.05rem; font-weight: 800; color: white;
-    background: var(--ble); cursor: pointer; margin-bottom: 14px;
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 32px;
   }
-  .btn-ble.connected { background: #0f766e; }
-  .status-badge {
-    display: inline-block; padding: 6px 14px; border-radius: 999px;
-    font-weight: 700; font-size: 0.9rem; background: #334155;
+
+  /* MUI AppBar */
+  .appbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(19, 28, 46, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
-  .status-up { background: var(--up); }
-  .status-down { background: var(--down); }
-  .timer { font-size: 2.3rem; font-weight: 800; margin: 8px 0 2px; font-variant-numeric: tabular-nums; }
-  .sub { color: var(--muted); font-size: 0.82rem; }
-  .ch-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; margin-top: 8px; }
+  .appbar-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  .ble-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--primary);
+    box-shadow: var(--shadow-1);
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+  }
+  .ble-chip:active { transform: scale(0.96); }
+  .ble-chip.connected { background: var(--success-dark); }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.6);
+  }
+  .ble-chip.connected .dot {
+    background: #a7f3d0;
+    box-shadow: 0 0 8px #6ee7b7;
+  }
+
+  .container {
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* MUI Paper Card */
+  .paper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow-1);
+  }
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-sec);
+    margin: 0 0 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Status Hero */
+  .status-hero {
+    text-align: center;
+    padding: 20px 16px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .state-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: var(--surface-2);
+    color: var(--text-sec);
+  }
+  .state-pill.up { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59,130,246,0.4); }
+  .state-pill.down { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.4); }
+  .countdown {
+    font-size: 3.1rem;
+    font-weight: 900;
+    margin: 10px 0 4px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .meta-line {
+    font-size: 0.82rem;
+    color: var(--text-sec);
+    margin-bottom: 14px;
+  }
+  .progress-track {
+    width: 100%;
+    height: 6px;
+    background: var(--surface-2);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--primary);
+    transition: width 0.3s linear, background 0.2s;
+  }
+
+  /* Channel Toggle Grid */
+  .ch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
   .ch-btn {
-    padding: 10px 0; border-radius: 8px; border: 1px solid #475569;
-    background: #0f172a; color: var(--text); font-weight: 700; font-size: 0.95rem; cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 12px 6px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
   }
-  .ch-btn.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
-  .btn-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-  button.ctrl {
-    border: none; border-radius: 14px; padding: 18px; font-size: 1.2rem; font-weight: 800;
-    color: white; cursor: pointer; transition: opacity 0.15s;
+  .ch-btn:active { transform: scale(0.96); }
+  .ch-btn.active {
+    background: var(--warning);
+    color: #0f172a;
+    border-color: var(--warning);
+    font-weight: 800;
+    box-shadow: 0 2px 12px rgba(245, 158, 11, 0.35);
   }
-  button.ctrl:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-up { background: var(--up); }
-  .btn-down { background: var(--down); }
-  .btn-stop { background: var(--stop); padding: 22px; font-size: 1.35rem; box-shadow: 0 0 20px rgba(220,38,38,0.4); }
-  .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
-  .row label { font-size: 0.92rem; text-align: left; }
-  input[type="number"] {
-    width: 88px; padding: 8px; border-radius: 8px; border: 1px solid #475569;
-    background: #0f172a; color: white; font-size: 1rem; text-align: center;
+
+  /* Duration Slider + Chips */
+  .dur-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
   }
-  .presets { display: flex; gap: 6px; margin-bottom: 10px; }
-  .preset-btn {
-    flex: 1; padding: 7px 4px; border-radius: 8px; border: 1px solid #475569;
-    background: #0f172a; color: var(--muted); font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  .dur-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
   }
-  .btn-save {
-    width: 100%; padding: 11px; border: none; border-radius: 10px;
-    font-size: 0.95rem; font-weight: 700; background: #475569; color: white; cursor: pointer;
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--primary);
+    height: 6px;
+    cursor: pointer;
+    margin: 4px 0 14px;
   }
-  h2 { font-size: 0.95rem; margin: 0 0 10px; color: var(--muted); text-align: left; }
+  .chip-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    flex: 1;
+    min-width: 58px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-sec);
+    border-radius: 999px;
+    padding: 7px 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip.active, .chip:hover {
+    background: rgba(59, 130, 246, 0.18);
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.45);
+  }
+
+  /* Primary Action Buttons */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .move-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .mui-btn {
+    border: none;
+    border-radius: 14px;
+    padding: 18px 12px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: var(--shadow-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.08s, opacity 0.15s, filter 0.15s;
+  }
+  .mui-btn:active:not(:disabled) { transform: scale(0.97); }
+  .mui-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+  .btn-up { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+  .btn-down { background: linear-gradient(135deg, #10b981, #059669); }
+  .btn-stop {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    padding: 20px;
+    font-size: 1.15rem;
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.35);
+  }
+
+  /* Accordion Settings */
+  details.paper { padding: 0; overflow: hidden; }
+  summary {
+    list-style: none;
+    padding: 15px 16px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-sec);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  summary::-webkit-details-marker { display: none; }
+  .acc-body {
+    padding: 4px 16px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .field-row label { font-size: 0.88rem; color: var(--text-sec); }
+  .mui-input {
+    width: 108px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+    outline: none;
+  }
+  .mui-input:focus { border-color: var(--primary); }
+  .btn-outlined {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-outlined:disabled { opacity: 0.4; cursor: not-allowed; }
+  .divider { height: 1px; background: var(--border); margin: 2px 0; }
+
+  /* Snackbar */
+  .snackbar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #323f57;
+    color: #fff;
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-2);
+    opacity: 0;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+    z-index: 50;
+    white-space: nowrap;
+  }
+  .snackbar.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>🏀 Goal Tender BLE Remote</h1>
 
-  <button class="btn-ble" id="bleBtn" onclick="connectBLE()">🔵 Connect via Bluetooth</button>
-
-  <div class="card">
-    <span class="status-badge" id="stateBadge">DISCONNECTED</span>
-    <div class="timer" id="timerDisplay">00:00</div>
-    <div class="sub" id="rfInfo">316.50 MHz | Tap Connect above</div>
+<header class="appbar">
+  <div class="appbar-title">
+    <span>🏀</span>
+    <span>Goal Tender</span>
   </div>
+  <button class="ble-chip" id="bleBtn" onclick="connectBLE()">
+    <span class="dot"></span>
+    <span id="bleBtnText">Connect</span>
+  </button>
+</header>
 
-  <div class="card">
-    <h2>📡 Select Hoop Channel (1–9)</h2>
+<main class="container">
+  <!-- Status Hero Card -->
+  <section class="paper status-hero">
+    <div class="state-pill" id="statePill">DISCONNECTED</div>
+    <div class="countdown" id="timerDisplay">00:00</div>
+    <div class="meta-line" id="rfInfo">Tap Connect in the top right to pair via Bluetooth</div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </section>
+
+  <!-- Channel Selector -->
+  <section class="paper">
+    <div class="section-label">
+      <span>Hoop Channel</span>
+      <span id="chBadge" style="color:var(--warning);">Hoop 1</span>
+    </div>
     <div class="ch-grid" id="chGrid"></div>
-  </div>
+  </section>
 
-  <div class="card">
-    <h2>⏱️ Run Duration (Seconds)</h2>
-    <div class="row">
-      <label>This Run (sec):</label>
-      <input type="number" id="runDurSec" min="1" max="900" value="300">
+  <!-- Duration Control -->
+  <section class="paper">
+    <div class="dur-header">
+      <span class="section-label" style="margin:0;">Run Duration</span>
+      <span class="dur-value" id="durLabel">5m 00s</span>
     </div>
-    <div class="presets">
-      <button class="preset-btn" onclick="setRunDur(5)">5s Test</button>
-      <button class="preset-btn" onclick="setRunDur(60)">1 min</button>
-      <button class="preset-btn" onclick="setRunDur(180)">3 min</button>
-      <button class="preset-btn" onclick="setRunDur(300)">5 min</button>
-      <button class="preset-btn" onclick="setRunDur(360)">6 min</button>
+    <input type="range" id="durSlider" min="5" max="900" step="5" value="300" oninput="onSliderInput(this.value)">
+    <div class="chip-row">
+      <button class="chip" onclick="setRunDur(5)">5s Test</button>
+      <button class="chip" onclick="setRunDur(60)">1 min</button>
+      <button class="chip" onclick="setRunDur(180)">3 min</button>
+      <button class="chip" onclick="setRunDur(300)">5 min</button>
+      <button class="chip" onclick="setRunDur(360)">6 min</button>
     </div>
-  </div>
+  </section>
 
-  <div class="btn-grid">
-    <button class="ctrl btn-stop" id="btnStop" onclick="sendBLE('STOP')" disabled>🛑 EMERGENCY STOP</button>
-    <button class="ctrl btn-up" id="btnUp" onclick="sendMove('UP')" disabled>⬆️ RAISE HOOP (UP)</button>
-    <button class="ctrl btn-down" id="btnDown" onclick="sendMove('DOWN')" disabled>⬇️ LOWER HOOP (DOWN)</button>
-  </div>
+  <!-- Action Buttons -->
+  <section class="actions">
+    <div class="move-row">
+      <button class="mui-btn btn-up" id="btnUp" onclick="sendMove('UP')" disabled>
+        <span>▲</span> RAISE
+      </button>
+      <button class="mui-btn btn-down" id="btnDown" onclick="sendMove('DOWN')" disabled>
+        <span>▼</span> LOWER
+      </button>
+    </div>
+    <button class="mui-btn btn-stop" id="btnStop" onclick="sendStop()" disabled>
+      ■ EMERGENCY STOP
+    </button>
+  </section>
 
-  <div class="card">
-    <h2>💾 Saved Default Durations (Up to 900s)</h2>
-    <div class="row">
-      <label>Default UP (sec):</label>
-      <input type="number" id="upSec" min="1" max="900" value="300">
-    </div>
-    <div class="row">
-      <label>Default DOWN (sec):</label>
-      <input type="number" id="downSec" min="1" max="900" value="300">
-    </div>
-    <button class="btn-save" onclick="saveDefaults()">Save Defaults</button>
-  </div>
+  <!-- Collapsible Settings & Security -->
+  <details class="paper">
+    <summary>
+      <span>⚙️ Settings &amp; Bluetooth Security</span>
+      <span style="font-size:0.75rem;">▼</span>
+    </summary>
+    <div class="acc-body">
+      <div class="field-row">
+        <label for="upSec">Default RAISE (sec):</label>
+        <input class="mui-input" type="number" id="upSec" min="1" max="900" value="300">
+      </div>
+      <div class="field-row">
+        <label for="downSec">Default LOWER (sec):</label>
+        <input class="mui-input" type="number" id="downSec" min="1" max="900" value="300">
+      </div>
+      <button class="btn-outlined" id="btnSaveDefaults" onclick="saveDefaults()" disabled>Save Default Durations</button>
 
-  <div class="card">
-    <h2>🔑 Bluetooth Pairing Key (6 Digits)</h2>
-    <div class="row">
-      <label>New Pairing Key:</label>
-      <input type="text" inputmode="numeric" id="newKeyInput" maxlength="6" placeholder="000000" style="width:110px;padding:8px;border-radius:8px;border:1px solid #475569;background:#0f172a;color:white;font-size:1rem;text-align:center;letter-spacing:2px;">
+      <div class="divider"></div>
+
+      <div class="field-row">
+        <label for="newKeyInput">New 6-Digit Pairing Key:</label>
+        <input class="mui-input" type="text" inputmode="numeric" id="newKeyInput" maxlength="6" placeholder="000000" style="letter-spacing:2px;">
+      </div>
+      <button class="btn-outlined" id="btnSaveKey" onclick="savePasskey()" disabled>Update Pairing Key</button>
+      <div style="font-size:0.78rem;color:var(--text-sec);line-height:1.4;">
+        Default pairing key is <strong>000000</strong>. Hold the ESP32 <strong>IO0</strong> button for 5s to reset.
+      </div>
     </div>
-    <button class="btn-save" id="btnSaveKey" onclick="savePasskey()" disabled>Update Pairing Key</button>
-    <div class="sub" id="keyMsg" style="text-align:left;margin-top:8px;">Default key is 000000. New devices will use the updated key.</div>
-  </div>
-</div>
+  </details>
+</main>
+
+<div class="snackbar" id="snackbar"></div>
 
 <script>
 const SERVICE_UUID = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
@@ -142,9 +455,33 @@ let bleDevice = null;
 let cmdChar = null;
 let statusChar = null;
 let currentCh = 1;
+let runDurationSec = 300;
+let activeTotalSec = 300;
 let initialized = false;
 const enc = new TextEncoder();
 const dec = new TextDecoder();
+
+function showToast(msg) {
+  const el = document.getElementById('snackbar');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function fmtDurReadable(sec) {
+  sec = Number(sec);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m === 0) return `${s}s`;
+  return `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
+function fmtClock(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
 
 function buildChannelButtons() {
   const grid = document.getElementById('chGrid');
@@ -152,7 +489,7 @@ function buildChannelButtons() {
     const b = document.createElement('button');
     b.className = 'ch-btn' + (i === currentCh ? ' active' : '');
     b.id = 'ch-' + i;
-    b.textContent = i;
+    b.textContent = `Hoop ${i}`;
     b.onclick = () => selectChannel(i);
     grid.appendChild(b);
   }
@@ -160,26 +497,33 @@ function buildChannelButtons() {
 
 function updateChannelUI(ch) {
   currentCh = ch;
+  document.getElementById('chBadge').textContent = `Hoop ${ch}`;
   for (let i = 1; i <= 9; i++) {
     const el = document.getElementById('ch-' + i);
     if (el) el.className = 'ch-btn' + (i === ch ? ' active' : '');
   }
 }
 
+function onSliderInput(val) {
+  runDurationSec = Number(val);
+  document.getElementById('durLabel').textContent = fmtDurReadable(runDurationSec);
+}
+
 function setRunDur(sec) {
-  document.getElementById('runDurSec').value = sec;
+  runDurationSec = sec;
+  document.getElementById('durSlider').value = sec;
+  document.getElementById('durLabel').textContent = fmtDurReadable(sec);
 }
 
 function setControlsEnabled(enabled) {
-  document.getElementById('btnStop').disabled = !enabled;
-  document.getElementById('btnUp').disabled = !enabled;
-  document.getElementById('btnDown').disabled = !enabled;
-  document.getElementById('btnSaveKey').disabled = !enabled;
+  ['btnStop', 'btnUp', 'btnDown', 'btnSaveDefaults', 'btnSaveKey'].forEach(id => {
+    document.getElementById(id).disabled = !enabled;
+  });
 }
 
 async function connectBLE() {
   if (!navigator.bluetooth) {
-    alert('Web Bluetooth is not supported in this browser. Use Chrome (Mac/Android) or Bluefy (iPhone/iPad).');
+    alert('Web Bluetooth is not supported here. Use Chrome (Mac/Android) or Bluefy (iPhone/iPad).');
     return;
   }
   try {
@@ -201,10 +545,11 @@ async function connectBLE() {
     const initialVal = await statusChar.readValue();
     handleStatus(dec.decode(initialVal));
 
-    const btn = document.getElementById('bleBtn');
-    btn.textContent = '✅ Connected to Gym-Hoop-BLE';
-    btn.classList.add('connected');
+    const chip = document.getElementById('bleBtn');
+    chip.classList.add('connected');
+    document.getElementById('bleBtnText').textContent = 'Connected';
     setControlsEnabled(true);
+    showToast('Connected to Gym-Hoop-BLE');
   } catch (err) {
     console.error(err);
   }
@@ -214,11 +559,14 @@ function onDisconnected() {
   cmdChar = null;
   statusChar = null;
   initialized = false;
-  const btn = document.getElementById('bleBtn');
-  btn.textContent = '🔵 Reconnect Bluetooth';
-  btn.classList.remove('connected');
-  document.getElementById('stateBadge').textContent = 'DISCONNECTED';
-  document.getElementById('stateBadge').className = 'status-badge';
+  const chip = document.getElementById('bleBtn');
+  chip.classList.remove('connected');
+  document.getElementById('bleBtnText').textContent = 'Reconnect';
+  const pill = document.getElementById('statePill');
+  pill.textContent = 'DISCONNECTED';
+  pill.className = 'state-pill';
+  document.getElementById('rfInfo').textContent = 'Bluetooth disconnected — tap Reconnect';
+  document.getElementById('progressFill').style.width = '0%';
   setControlsEnabled(false);
 }
 
@@ -233,63 +581,69 @@ function selectChannel(ch) {
 }
 
 function sendMove(dir) {
-  const dur = document.getElementById('runDurSec').value || 300;
-  sendBLE(`${dir}:${currentCh}:${dur}`);
+  activeTotalSec = runDurationSec;
+  sendBLE(`${dir}:${currentCh}:${runDurationSec}`);
 }
 
-function saveDefaults() {
+function sendStop() {
+  sendBLE('STOP');
+  showToast('Emergency STOP sent');
+}
+
+async function saveDefaults() {
   const u = document.getElementById('upSec').value || 300;
   const d = document.getElementById('downSec').value || 300;
-  sendBLE(`SET:${u}:${d}`);
-  document.getElementById('runDurSec').value = u;
+  await sendBLE(`SET:${u}:${d}`);
+  setRunDur(Number(u));
+  showToast(`Saved defaults (UP: ${u}s, DOWN: ${d}s)`);
 }
 
 async function savePasskey() {
   const k = document.getElementById('newKeyInput').value.trim();
-  const msg = document.getElementById('keyMsg');
   if (!/^\d{6}$/.test(k)) {
-    msg.textContent = 'Please enter exactly 6 digits (e.g. 000000 or 482619).';
-    msg.style.color = '#f87171';
+    showToast('Enter exactly 6 digits (e.g. 482619)');
     return;
   }
   await sendBLE('KEY:' + k);
   document.getElementById('newKeyInput').value = '';
-  msg.textContent = `Pairing key updated to ${k} (saved to ESP32 flash).`;
-  msg.style.color = '#34d399';
-}
-
-function fmtTime(sec) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  showToast(`Pairing key updated to ${k}`);
 }
 
 function handleStatus(jsonStr) {
   try {
     const d = JSON.parse(jsonStr);
     updateChannelUI(d.ch);
-    const badge = document.getElementById('stateBadge');
+    const pill = document.getElementById('statePill');
     const timer = document.getElementById('timerDisplay');
-    document.getElementById('rfInfo').textContent = `316.50 MHz | Ch ${d.ch} | 🔒 Paired BLE`;
+    const fill = document.getElementById('progressFill');
+    document.getElementById('rfInfo').textContent = `316.50 MHz • Hoop ${d.ch} • Encrypted BLE`;
 
     if (d.state === 1) {
-      badge.textContent = `⬆️ CH ${d.ch} RAISING (TX ON)`;
-      badge.className = 'status-badge status-up';
-      timer.textContent = fmtTime(d.rem);
+      pill.textContent = `▲ RAISING HOOP ${d.ch}`;
+      pill.className = 'state-pill up';
+      timer.textContent = fmtClock(d.rem);
+      const pct = Math.min(100, Math.max(0, ((activeTotalSec - d.rem) / activeTotalSec) * 100));
+      fill.style.width = pct + '%';
+      fill.style.background = 'var(--primary)';
     } else if (d.state === 2) {
-      badge.textContent = `⬇️ CH ${d.ch} LOWERING (TX ON)`;
-      badge.className = 'status-badge status-down';
-      timer.textContent = fmtTime(d.rem);
+      pill.textContent = `▼ LOWERING HOOP ${d.ch}`;
+      pill.className = 'state-pill down';
+      timer.textContent = fmtClock(d.rem);
+      const pct = Math.min(100, Math.max(0, ((activeTotalSec - d.rem) / activeTotalSec) * 100));
+      fill.style.width = pct + '%';
+      fill.style.background = 'var(--success)';
     } else {
-      badge.textContent = `IDLE / CH ${d.ch} READY`;
-      badge.className = 'status-badge';
+      pill.textContent = `READY • HOOP ${d.ch}`;
+      pill.className = 'state-pill';
       timer.textContent = '00:00';
+      fill.style.width = '0%';
     }
 
     if (!initialized) {
       document.getElementById('upSec').value = d.up;
       document.getElementById('downSec').value = d.down;
-      document.getElementById('runDurSec').value = d.up;
+      setRunDur(d.up);
+      activeTotalSec = d.up;
       initialized = true;
     }
   } catch (e) {}
