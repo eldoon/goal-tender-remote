@@ -1,0 +1,12 @@
+*.raw
+*.cs8
+*.sub
+captures/
+flipper_subghz/
+cc1101_test/
+hoop_controller/
+analyze_iq.py
+live_scope.py
+signal_visualizer.html
+ble_remote.html
+.DS_Store

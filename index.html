@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Goal Tender BLE Remote</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --up: #2563eb;
+    --down: #059669;
+    --stop: #dc2626;
+    --accent: #f59e0b;
+    --ble: #0ea5e9;
+  }
+  * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--text); text-align: center; }
+  .container { max-width: 440px; margin: 0 auto; }
+  h1 { font-size: 1.35rem; margin: 4px 0 12px; }
+  .card {
+    background: var(--card); border-radius: 14px; padding: 14px;
+    margin-bottom: 14px; border: 1px solid #334155;
+  }
+  .btn-ble {
+    width: 100%; border: none; border-radius: 12px; padding: 14px;
+    font-size: 1.05rem; font-weight: 800; color: white;
+    background: var(--ble); cursor: pointer; margin-bottom: 14px;
+  }
+  .btn-ble.connected { background: #0f766e; }
+  .status-badge {
+    display: inline-block; padding: 6px 14px; border-radius: 999px;
+    font-weight: 700; font-size: 0.9rem; background: #334155;
+  }
+  .status-up { background: var(--up); }
+  .status-down { background: var(--down); }
+  .timer { font-size: 2.3rem; font-weight: 800; margin: 8px 0 2px; font-variant-numeric: tabular-nums; }
+  .sub { color: var(--muted); font-size: 0.82rem; }
+  .ch-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; margin-top: 8px; }
+  .ch-btn {
+    padding: 10px 0; border-radius: 8px; border: 1px solid #475569;
+    background: #0f172a; color: var(--text); font-weight: 700; font-size: 0.95rem; cursor: pointer;
+  }
+  .ch-btn.active { background: var(--accent); color: #0f172a; border-color: var(--accent); }
+  .btn-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+  button.ctrl {
+    border: none; border-radius: 14px; padding: 18px; font-size: 1.2rem; font-weight: 800;
+    color: white; cursor: pointer; transition: opacity 0.15s;
+  }
+  button.ctrl:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-up { background: var(--up); }
+  .btn-down { background: var(--down); }
+  .btn-stop { background: var(--stop); padding: 22px; font-size: 1.35rem; box-shadow: 0 0 20px rgba(220,38,38,0.4); }
+  .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
+  .row label { font-size: 0.92rem; text-align: left; }
+  input[type="number"] {
+    width: 88px; padding: 8px; border-radius: 8px; border: 1px solid #475569;
+    background: #0f172a; color: white; font-size: 1rem; text-align: center;
+  }
+  .presets { display: flex; gap: 6px; margin-bottom: 10px; }
+  .preset-btn {
+    flex: 1; padding: 7px 4px; border-radius: 8px; border: 1px solid #475569;
+    background: #0f172a; color: var(--muted); font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  }
+  .btn-save {
+    width: 100%; padding: 11px; border: none; border-radius: 10px;
+    font-size: 0.95rem; font-weight: 700; background: #475569; color: white; cursor: pointer;
+  }
+  h2 { font-size: 0.95rem; margin: 0 0 10px; color: var(--muted); text-align: left; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🏀 Goal Tender BLE Remote</h1>
+
+  <button class="btn-ble" id="bleBtn" onclick="connectBLE()">🔵 Connect via Bluetooth</button>
+
+  <div class="card">
+    <span class="status-badge" id="stateBadge">DISCONNECTED</span>
+    <div class="timer" id="timerDisplay">00:00</div>
+    <div class="sub" id="rfInfo">316.50 MHz | Tap Connect above</div>
+  </div>
+
+  <div class="card">
+    <h2>📡 Select Hoop Channel (1–9)</h2>
+    <div class="ch-grid" id="chGrid"></div>
+  </div>
+
+  <div class="card">
+    <h2>⏱️ Run Duration (Seconds)</h2>
+    <div class="row">
+      <label>This Run (sec):</label>
+      <input type="number" id="runDurSec" min="1" max="900" value="300">
+    </div>
+    <div class="presets">
+      <button class="preset-btn" onclick="setRunDur(5)">5s Test</button>
+      <button class="preset-btn" onclick="setRunDur(60)">1 min</button>
+      <button class="preset-btn" onclick="setRunDur(180)">3 min</button>
+      <button class="preset-btn" onclick="setRunDur(300)">5 min</button>
+      <button class="preset-btn" onclick="setRunDur(360)">6 min</button>
+    </div>
+  </div>
+
+  <div class="btn-grid">
+    <button class="ctrl btn-stop" id="btnStop" onclick="sendBLE('STOP')" disabled>🛑 EMERGENCY STOP</button>
+    <button class="ctrl btn-up" id="btnUp" onclick="sendMove('UP')" disabled>⬆️ RAISE HOOP (UP)</button>
+    <button class="ctrl btn-down" id="btnDown" onclick="sendMove('DOWN')" disabled>⬇️ LOWER HOOP (DOWN)</button>
+  </div>
+
+  <div class="card">
+    <h2>💾 Saved Default Durations (Up to 900s)</h2>
+    <div class="row">
+      <label>Default UP (sec):</label>
+      <input type="number" id="upSec" min="1" max="900" value="300">
+    </div>
+    <div class="row">
+      <label>Default DOWN (sec):</label>
+      <input type="number" id="downSec" min="1" max="900" value="300">
+    </div>
+    <button class="btn-save" onclick="saveDefaults()">Save Defaults</button>
+  </div>
+
+  <div class="card">
+    <h2>🔑 Bluetooth Pairing Key (6 Digits)</h2>
+    <div class="row">
+      <label>New Pairing Key:</label>
+      <input type="text" inputmode="numeric" id="newKeyInput" maxlength="6" placeholder="000000" style="width:110px;padding:8px;border-radius:8px;border:1px solid #475569;background:#0f172a;color:white;font-size:1rem;text-align:center;letter-spacing:2px;">
+    </div>
+    <button class="btn-save" id="btnSaveKey" onclick="savePasskey()" disabled>Update Pairing Key</button>
+    <div class="sub" id="keyMsg" style="text-align:left;margin-top:8px;">Default key is 000000. New devices will use the updated key.</div>
+  </div>
+</div>
+
+<script>
+const SERVICE_UUID = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
+const CMD_UUID     = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
+const STATUS_UUID  = 'beb5483f-36e1-4688-b7f5-ea07361b26a8';
+
+let bleDevice = null;
+let cmdChar = null;
+let statusChar = null;
+let currentCh = 1;
+let initialized = false;
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
+function buildChannelButtons() {
+  const grid = document.getElementById('chGrid');
+  for (let i = 1; i <= 9; i++) {
+    const b = document.createElement('button');
+    b.className = 'ch-btn' + (i === currentCh ? ' active' : '');
+    b.id = 'ch-' + i;
+    b.textContent = i;
+    b.onclick = () => selectChannel(i);
+    grid.appendChild(b);
+  }
+}
+
+function updateChannelUI(ch) {
+  currentCh = ch;
+  for (let i = 1; i <= 9; i++) {
+    const el = document.getElementById('ch-' + i);
+    if (el) el.className = 'ch-btn' + (i === ch ? ' active' : '');
+  }
+}
+
+function setRunDur(sec) {
+  document.getElementById('runDurSec').value = sec;
+}
+
+function setControlsEnabled(enabled) {
+  document.getElementById('btnStop').disabled = !enabled;
+  document.getElementById('btnUp').disabled = !enabled;
+  document.getElementById('btnDown').disabled = !enabled;
+  document.getElementById('btnSaveKey').disabled = !enabled;
+}
+
+async function connectBLE() {
+  if (!navigator.bluetooth) {
+    alert('Web Bluetooth is not supported in this browser. Use Chrome (Mac/Android) or Bluefy (iPhone/iPad).');
+    return;
+  }
+  try {
+    bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ name: 'Gym-Hoop-BLE' }],
+      optionalServices: [SERVICE_UUID]
+    });
+    bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+    const server = await bleDevice.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    cmdChar = await service.getCharacteristic(CMD_UUID);
+    statusChar = await service.getCharacteristic(STATUS_UUID);
+
+    await statusChar.startNotifications();
+    statusChar.addEventListener('characteristicvaluechanged', e => {
+      handleStatus(dec.decode(e.target.value));
+    });
+
+    const initialVal = await statusChar.readValue();
+    handleStatus(dec.decode(initialVal));
+
+    const btn = document.getElementById('bleBtn');
+    btn.textContent = '✅ Connected to Gym-Hoop-BLE';
+    btn.classList.add('connected');
+    setControlsEnabled(true);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function onDisconnected() {
+  cmdChar = null;
+  statusChar = null;
+  initialized = false;
+  const btn = document.getElementById('bleBtn');
+  btn.textContent = '🔵 Reconnect Bluetooth';
+  btn.classList.remove('connected');
+  document.getElementById('stateBadge').textContent = 'DISCONNECTED';
+  document.getElementById('stateBadge').className = 'status-badge';
+  setControlsEnabled(false);
+}
+
+async function sendBLE(text) {
+  if (!cmdChar) return;
+  await cmdChar.writeValue(enc.encode(text));
+}
+
+function selectChannel(ch) {
+  updateChannelUI(ch);
+  sendBLE('CH:' + ch);
+}
+
+function sendMove(dir) {
+  const dur = document.getElementById('runDurSec').value || 300;
+  sendBLE(`${dir}:${currentCh}:${dur}`);
+}
+
+function saveDefaults() {
+  const u = document.getElementById('upSec').value || 300;
+  const d = document.getElementById('downSec').value || 300;
+  sendBLE(`SET:${u}:${d}`);
+  document.getElementById('runDurSec').value = u;
+}
+
+async function savePasskey() {
+  const k = document.getElementById('newKeyInput').value.trim();
+  const msg = document.getElementById('keyMsg');
+  if (!/^\d{6}$/.test(k)) {
+    msg.textContent = 'Please enter exactly 6 digits (e.g. 000000 or 482619).';
+    msg.style.color = '#f87171';
+    return;
+  }
+  await sendBLE('KEY:' + k);
+  document.getElementById('newKeyInput').value = '';
+  msg.textContent = `Pairing key updated to ${k} (saved to ESP32 flash).`;
+  msg.style.color = '#34d399';
+}
+
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function handleStatus(jsonStr) {
+  try {
+    const d = JSON.parse(jsonStr);
+    updateChannelUI(d.ch);
+    const badge = document.getElementById('stateBadge');
+    const timer = document.getElementById('timerDisplay');
+    document.getElementById('rfInfo').textContent = `316.50 MHz | Ch ${d.ch} | 🔒 Paired BLE`;
+
+    if (d.state === 1) {
+      badge.textContent = `⬆️ CH ${d.ch} RAISING (TX ON)`;
+      badge.className = 'status-badge status-up';
+      timer.textContent = fmtTime(d.rem);
+    } else if (d.state === 2) {
+      badge.textContent = `⬇️ CH ${d.ch} LOWERING (TX ON)`;
+      badge.className = 'status-badge status-down';
+      timer.textContent = fmtTime(d.rem);
+    } else {
+      badge.textContent = `IDLE / CH ${d.ch} READY`;
+      badge.className = 'status-badge';
+      timer.textContent = '00:00';
+    }
+
+    if (!initialized) {
+      document.getElementById('upSec').value = d.up;
+      document.getElementById('downSec').value = d.down;
+      document.getElementById('runDurSec').value = d.up;
+      initialized = true;
+    }
+  } catch (e) {}
+}
+
+buildChannelButtons();
+</script>
+</body>
+</html>
