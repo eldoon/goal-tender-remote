@@ -270,27 +270,36 @@
     box-shadow: 0 4px 20px rgba(239, 68, 68, 0.35);
   }
 
-  /* Accordion Settings */
-  details.paper { padding: 0; overflow: hidden; }
-  summary {
-    list-style: none;
-    padding: 15px 16px;
-    font-size: 0.92rem;
-    font-weight: 600;
+  /* MUI Tabs */
+  .tabs {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    position: sticky;
+    top: 57px;
+    z-index: 19;
+  }
+  .tab-btn {
+    border: none;
+    background: transparent;
     color: var(--text-sec);
+    padding: 13px 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
   }
-  summary::-webkit-details-marker { display: none; }
-  .acc-body {
-    padding: 4px 16px 16px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+  .tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
   }
+  .tab-panel { display: none; flex-direction: column; gap: 14px; }
+  .tab-panel.active { display: flex; }
+
   .field-row {
     display: flex;
     justify-content: space-between;
@@ -362,64 +371,69 @@
   </button>
 </header>
 
+<nav class="tabs">
+  <button class="tab-btn active" id="tabBtn-remote" onclick="switchTab('remote')">🏀 Remote</button>
+  <button class="tab-btn" id="tabBtn-settings" onclick="switchTab('settings')">⚙️ Settings</button>
+</nav>
+
 <main class="container">
-  <!-- Status Hero Card -->
-  <section class="paper status-hero">
-    <div class="state-pill" id="statePill">DISCONNECTED</div>
-    <div class="countdown" id="timerDisplay">00:00</div>
-    <div class="meta-line" id="rfInfo">Tap Connect in the top right to pair via Bluetooth</div>
-    <div class="progress-track">
-      <div class="progress-fill" id="progressFill"></div>
-    </div>
-  </section>
+  <!-- TAB 1: REMOTE -->
+  <div class="tab-panel active" id="tab-remote">
+    <!-- Status Hero Card -->
+    <section class="paper status-hero">
+      <div class="state-pill" id="statePill">DISCONNECTED</div>
+      <div class="countdown" id="timerDisplay">00:00</div>
+      <div class="meta-line" id="rfInfo">Tap Connect in the top right to pair via Bluetooth</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </section>
 
-  <!-- Channel Selector -->
-  <section class="paper">
-    <div class="section-label">
-      <span>Hoop Channel</span>
-      <span id="chBadge" style="color:var(--warning);">Hoop 1</span>
-    </div>
-    <div class="ch-grid" id="chGrid"></div>
-  </section>
+    <!-- Channel Selector -->
+    <section class="paper">
+      <div class="section-label">
+        <span>Hoop Channel</span>
+        <span id="chBadge" style="color:var(--warning);">Hoop 1</span>
+      </div>
+      <div class="ch-grid" id="chGrid"></div>
+    </section>
 
-  <!-- Duration Control -->
-  <section class="paper">
-    <div class="dur-header">
-      <span class="section-label" style="margin:0;">Run Duration</span>
-      <span class="dur-value" id="durLabel">5m 00s</span>
-    </div>
-    <input type="range" id="durSlider" min="5" max="900" step="5" value="300" oninput="onSliderInput(this.value)">
-    <div class="chip-row">
-      <button class="chip" onclick="setRunDur(5)">5s Test</button>
-      <button class="chip" onclick="setRunDur(60)">1 min</button>
-      <button class="chip" onclick="setRunDur(180)">3 min</button>
-      <button class="chip" onclick="setRunDur(300)">5 min</button>
-      <button class="chip" onclick="setRunDur(360)">6 min</button>
-    </div>
-  </section>
+    <!-- Duration Control -->
+    <section class="paper">
+      <div class="dur-header">
+        <span class="section-label" style="margin:0;">Run Duration</span>
+        <span class="dur-value" id="durLabel">5m 00s</span>
+      </div>
+      <input type="range" id="durSlider" min="5" max="900" step="5" value="300" oninput="onSliderInput(this.value)">
+      <div class="chip-row">
+        <button class="chip" onclick="setRunDur(5)">5s Test</button>
+        <button class="chip" onclick="setRunDur(60)">1 min</button>
+        <button class="chip" onclick="setRunDur(180)">3 min</button>
+        <button class="chip" onclick="setRunDur(300)">5 min</button>
+        <button class="chip" onclick="setRunDur(360)">6 min</button>
+      </div>
+    </section>
 
-  <!-- Action Buttons -->
-  <section class="actions">
-    <div class="move-row">
-      <button class="mui-btn btn-up" id="btnUp" onclick="sendMove('UP')" disabled>
-        <span>▲</span> RAISE
+    <!-- Action Buttons -->
+    <section class="actions">
+      <div class="move-row">
+        <button class="mui-btn btn-up" id="btnUp" onclick="sendMove('UP')" disabled>
+          <span>▲</span> RAISE
+        </button>
+        <button class="mui-btn btn-down" id="btnDown" onclick="sendMove('DOWN')" disabled>
+          <span>▼</span> LOWER
+        </button>
+      </div>
+      <button class="mui-btn btn-stop" id="btnStop" onclick="sendStop()" disabled>
+        ■ EMERGENCY STOP
       </button>
-      <button class="mui-btn btn-down" id="btnDown" onclick="sendMove('DOWN')" disabled>
-        <span>▼</span> LOWER
-      </button>
-    </div>
-    <button class="mui-btn btn-stop" id="btnStop" onclick="sendStop()" disabled>
-      ■ EMERGENCY STOP
-    </button>
-  </section>
+    </section>
+  </div>
 
-  <!-- Collapsible Settings & Security -->
-  <details class="paper">
-    <summary>
-      <span>⚙️ Settings &amp; Bluetooth Security</span>
-      <span style="font-size:0.75rem;">▼</span>
-    </summary>
-    <div class="acc-body">
+  <!-- TAB 2: SETTINGS -->
+  <div class="tab-panel" id="tab-settings">
+    <section class="paper" style="display:flex;flex-direction:column;gap:14px;">
+      <div class="section-label" style="margin:0;">💾 Saved Default Durations (Up to 900s)</div>
       <div class="field-row">
         <label for="upSec">Default RAISE (sec):</label>
         <input class="mui-input" type="number" id="upSec" min="1" max="900" value="300">
@@ -429,19 +443,20 @@
         <input class="mui-input" type="number" id="downSec" min="1" max="900" value="300">
       </div>
       <button class="btn-outlined" id="btnSaveDefaults" onclick="saveDefaults()" disabled>Save Default Durations</button>
+    </section>
 
-      <div class="divider"></div>
-
+    <section class="paper" style="display:flex;flex-direction:column;gap:14px;">
+      <div class="section-label" style="margin:0;">🔑 Bluetooth Pairing Key (6 Digits)</div>
       <div class="field-row">
-        <label for="newKeyInput">New 6-Digit Pairing Key:</label>
+        <label for="newKeyInput">New Pairing Key:</label>
         <input class="mui-input" type="text" inputmode="numeric" id="newKeyInput" maxlength="6" placeholder="000000" style="letter-spacing:2px;">
       </div>
       <button class="btn-outlined" id="btnSaveKey" onclick="savePasskey()" disabled>Update Pairing Key</button>
-      <div style="font-size:0.78rem;color:var(--text-sec);line-height:1.4;">
-        Default pairing key is <strong>000000</strong>. Hold the ESP32 <strong>IO0</strong> button for 5s to reset.
+      <div style="font-size:0.8rem;color:var(--text-sec);line-height:1.45;">
+        Default pairing key is <strong>000000</strong>. If the key is forgotten, hold the ESP32 <strong>IO0</strong> button for 5 seconds to reset it back to 000000.
       </div>
-    </div>
-  </details>
+    </section>
+  </div>
 </main>
 
 <div class="snackbar" id="snackbar"></div>
@@ -460,6 +475,13 @@ let activeTotalSec = 300;
 let initialized = false;
 const enc = new TextEncoder();
 const dec = new TextDecoder();
+
+function switchTab(name) {
+  ['remote', 'settings'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+    document.getElementById('tabBtn-' + t).classList.toggle('active', t === name);
+  });
+}
 
 function showToast(msg) {
   const el = document.getElementById('snackbar');
